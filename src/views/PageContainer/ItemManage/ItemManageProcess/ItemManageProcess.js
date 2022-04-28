@@ -22,10 +22,12 @@ export default function ItemManageProcess(props) {
     }
 
     useEffect(function(){
+        // 获取该账号身份可以访问的事项状态
         api.GetUserRank({
             user_id: localStorage.getItem('_id')
         }).then(response=>{
-            setCanOperate(response.data.data.can_operate)
+            let data = response.data.data.manage_status
+            setCanOperate(data)
         }).catch(error=>{
             showError('获取可操作事项状态失败！')
         })
@@ -36,7 +38,7 @@ export default function ItemManageProcess(props) {
             {
                 pageType === 1 &&
                 <ManageProcess setPageType={setPageType} canOperate={canOperate}
-                    ruleNodes={props.ruleNodes} regionNodes={props.regionNodes} userId={props.userId}
+                    ruleRoot={props.ruleRoot} regionRoot={props.regionRoot} userId={props.userId}
                     showError={showError} showSuccess={showSuccess}
                     bindedData={props.bindedData} setBindedData={props.setBindedData}/>
             }

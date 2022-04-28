@@ -1,8 +1,9 @@
 import React, {useEffect, useState} from 'react'
-import { Dropdown, Space, Menu, message, Button, Select, Table, Modal,Descriptions, Badge  } from 'antd';
-import { getYMD } from "../../../../utils/TimeStamp";
+import { Tabs, Space, Menu, message, Button, Select, Table, Modal,Descriptions, Badge  } from 'antd';
+import { getYMD, getYMDHMS } from "../../../../utils/TimeStamp";
 import api from '../../../../api/rule';
 import SelectForm from './SelectForm'
+const { TabPane } = Tabs
 
 export default function ManageAudit(props) {
     // 页面的基础数据
@@ -38,8 +39,8 @@ export default function ManageAudit(props) {
         },
         {
             title: '事项规则',
-            dataIndex: 'rule_path',
-            key: 'rule_path'
+            dataIndex: 'item_path',
+            key: 'item_path'
         },
         {
             title: '业务部门',
@@ -83,34 +84,6 @@ export default function ManageAudit(props) {
         }
     ]
 
-    const getPathByRuleId = (id)=>{
-        // 获取规则id对应的规则路径
-        let parent = props.ruleNodes[id].parentId
-        let currId = id
-        let res = ''
-        while (parent !== '' && parent !== currId){
-            res = props.ruleNodes[currId].rule_name + '\\' + res
-            currId = parent
-            parent = props.ruleNodes[currId].parentId
-        }
-        res = props.ruleNodes[currId].rule_name + '\\' + res
-        return res
-    }
-
-    const getPathByRegionId = (id)=>{
-        // 获取规则id对应的规则路径
-        let parent = props.regionNodes[id].parentId
-        let currId = id
-        let res = ''
-        while (parent !== '' && parent !== currId){
-            res = props.regionNodes[currId].region_name + '\\' + res
-            currId = parent
-            parent = props.regionNodes[currId].parentId
-        }
-        res = props.regionNodes[currId].region_name + '\\' + res
-        return res
-    }
-
     const searchItems = (data)=>{
         setTableLoading(true)
         // 搜索事项
@@ -125,7 +98,7 @@ export default function ManageAudit(props) {
                 // 规则路径生成、状态码转状态名
                 items[i]['creator_name'] = items[i].creator.name
                 items[i]['department_name'] = items[i].creator.department_name
-                items[i]['rule_path'] = getPathByRuleId(items[i].rule_id) + getPathByRegionId(items[i].region_id)
+                items[i]['item_path'] = items[i]['rule_path'] + items[i]['region_path']
                 items[i]['status'] = props.statusScheme[items[i].item_status].cn_name
             }
             setTotalSize(response.data.data.total)
@@ -156,7 +129,7 @@ export default function ManageAudit(props) {
                 // 规则路径生成、状态码转状态名
                 items[i]['creator_name'] = items[i].creator.name
                 items[i]['department_name'] = items[i].creator.department_name
-                items[i]['rule_path'] = getPathByRuleId(items[i].rule_id) + getPathByRegionId(items[i].region_id)
+                items[i]['item_path'] = items[i]['rule_path'] + items[i]['region_path']
                 items[i]['status'] = props.statusScheme[items[i].item_status].cn_name
             }
             setTableLoading(false)
@@ -182,7 +155,7 @@ export default function ManageAudit(props) {
                 // 规则路径生成、状态码转状态名
                 items[i]['creator_name'] = items[i].creator.name
                 items[i]['department_name'] = items[i].creator.department_name
-                items[i]['rule_path'] = getPathByRuleId(items[i].rule_id) + getPathByRegionId(items[i].region_id)
+                items[i]['item_path'] = items[i]['rule_path'] + items[i]['region_path']
                 items[i]['status'] = props.statusScheme[items[i].item_status].cn_name
             }
             setTableData(items)
@@ -211,7 +184,7 @@ export default function ManageAudit(props) {
             })
             detailTable.push({
                 'detailType': '事项规则',
-                'detailInfo': item.rule_path
+                'detailInfo': item.item_path
             })
             detailTable.push({
                 'detailType': '事项内容',
@@ -259,20 +232,6 @@ export default function ManageAudit(props) {
                 'detailType': '审核时限',
                 'detailInfo': tempTimeLimit
             })
-            // 咨询电话、办事大厅地址数组处理
-            let tempPhone = ''
-            let tempAddress = ''
-            if (data.windows){
-                for (let i = 0; i < data.windows.length; i++){
-                    tempPhone += ((i + 1) + '.' + data.windows[i].name + '：' + data.windows[i].phone + '\n')
-                    tempAddress += ((i + 1) + '.' + data.windows[i].name + '：' + data.windows[i].address + '\n')
-                }
-            }
-            detailTable.push({
-                'detailType': '咨询电话',
-                'detailInfo': tempPhone
-            })
-
             detailTable.push({
                 'detailType': '咨询平台',
                 'detailInfo': data.zxpt
@@ -290,12 +249,35 @@ export default function ManageAudit(props) {
                 'detailInfo': data.zzzd
             })
             detailTable.push({
-                'detailType': '办事大厅地址',
-                'detailInfo': tempAddress
+                'detailType': '网上办理流程',
+                'detailInfo': data.wsbllc
+            })
+            detailTable.push({
+                'detailType': '线下办理流程',
+                'detailInfo': data.ckbllc
+            })
+            detailTable.push({
+                'detailType': '办理点信息',
+                'detailInfo': (!data.windows || data.windows.length === 0) ? '' :
+                <Tabs defaultActiveKey='1' tabPosition='left' style={{whiteSpace: 'pre-wrap'}}>
+                    {
+                        data.windows.map((item, index)=>(
+                            'name' in data.windows[index] &&
+                            <TabPane tab={data.windows[index].name} key={index}>
+                                {
+                                    '办理地点： ' + data.windows[index].address +
+                                    '\n\n咨询及投诉电话： ' + data.windows[index].phone + 
+                                    '\n\n办公时间： ' + data.windows[index].office_hour
+                                }
+                            </TabPane>
+                        ))
+                    }
+                </Tabs>
             })
             detailTable.push({
                 'detailType': '二维码',
-                'detailInfo': data.qr_code
+                'detailInfo': data.qr_code === '' ? '暂无' : 
+                <img style={{height: 128, width: 128}} src={(api.GetServerIP() === '/api' ? 'http://localhost:5001' : api.GetServerIP()) + data.qr_code}/>
             })
             // 服务对象类型数组处理
             let type = data.service_object_type.split(',')
@@ -311,8 +293,8 @@ export default function ManageAudit(props) {
             // 审核意见处理
             let tempAdvises = ''
             if ('audit_advises' in data){
-                for (let i = 0; i < data.audit_advises.length; i++){
-                    tempAdvises += ((i + 1) + '.' + data['audit_advises'][i].user_name + '：' + data['audit_advises'][i].advise + '\n')
+                for (let i = data.audit_advises.length - 1; i >= 0 ; i--){
+                    tempAdvises += (getYMDHMS(data['audit_advises'][i].time) + '：' + data['audit_advises'][i].user_name + '：' + data['audit_advises'][i].advise + '\n')
                 }
             }
             detailTable.push({
