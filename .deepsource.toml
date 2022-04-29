@@ -12,4 +12,3 @@ enabled = true
 
   plugins = ["react"]
   style_guide = "standard"
-  dialect = "flow"
